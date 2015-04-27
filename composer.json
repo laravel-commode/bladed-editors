@@ -1,0 +1,21 @@
+{
+    "name": "laravel-commode/bladed-editors",
+    "description": "",
+    "authors": [
+        {
+            "name": "Volynov Andrew",
+            "email": "dubpubz@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0",
+        "illuminate/support": "4.2.*",
+        "laravel-commode/bladed": "dev-master"
+    },
+    "autoload": {
+        "psr-0": {
+            "LaravelCommode\\BladedEditors": "src/"
+        }
+    },
+    "minimum-stability": "dev"
+}
