@@ -42,26 +42,7 @@
 
         public function testRegistering()
         {
-            $this->applicationMock->expects($this->once())->method('singleton');
-
-            $this->applicationMock
-                ->expects($this->once())
-                ->method('bindShared')
-                ->with('commode.bladed.editorsManager', $this->callback(function ($callback) {
-
-                    $this->applicationMock
-                        ->expects($this->at(0))->method('make')
-                        ->with('LaravelCommode\BladedEditors\Interfaces\IManager')
-                        ->will($this->returnValue($this->manager));
-
-                    $callbackResult = $callback($this->applicationMock);
-                    return $callbackResult instanceof IManager;
-                }));
-
-            $this->applicationMock
-                ->expects($this->at(4))->method('make')
-                ->with('commode.bladed')
-                ->will($this->returnValue($this->bladedManager));
+            $this->applicationMock->expects($this->any())->method('make')->with('commode.bladed')->will($this->returnValue($this->bladedManager));
 
             $reflection = new \ReflectionMethod($this->service, 'registering');
             $reflection->setAccessible(true);
