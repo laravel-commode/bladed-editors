@@ -12,6 +12,9 @@
         "illuminate/support": "4.2.*",
         "laravel-commode/bladed": "dev-master"
     },
+    "require-dev": {
+        "satooshi/php-coveralls": "dev-master"
+    },
     "autoload": {
         "psr-0": {
             "LaravelCommode\\BladedEditors": "src/"
