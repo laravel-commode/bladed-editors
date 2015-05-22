@@ -1,11 +1,10 @@
 <?php
 
-    namespace LaravelCommode\BladedEditors;
-
-use LaravelCommode\Bladed\Interfaces\IBladedManager;
-use PHPUnit_Framework_MockObject_MockObject as Mock;
+namespace LaravelCommode\BladedEditors;
 
 use Illuminate\Foundation\Application;
+use LaravelCommode\Bladed\Interfaces\IBladedManager;
+use PHPUnit_Framework_MockObject_MockObject as Mock;
 
 class BladedEditorsServiceProviderTest extends \PHPUnit_Framework_TestCase
 {
@@ -61,8 +60,12 @@ class BladedEditorsServiceProviderTest extends \PHPUnit_Framework_TestCase
     public function testUses()
     {
         $reflection = new \ReflectionMethod($this->service, 'uses');
+
         $reflection->setAccessible(true);
-        $this->assertSame($reflection->invoke($this->service), ['LaravelCommode\Bladed\BladedServiceProvider']);
+        $this->assertSame(
+            $reflection->invoke($this->service),
+            ['LaravelCommode\Bladed\BladedServiceProvider']
+        );
     }
 
     public function testProvides()
