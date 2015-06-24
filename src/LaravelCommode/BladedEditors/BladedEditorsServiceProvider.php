@@ -1,29 +1,34 @@
 <?php
 namespace LaravelCommode\BladedEditors;
 
-use Illuminate\Support\ServiceProvider;
-use LaravelCommode\Bladed\Interfaces\IBladedManager;
-use LaravelCommode\Common\GhostService\GhostService;
+use Illuminate\Contracts\Foundation\Application;
 
-class BladedEditorsServiceProvider extends GhostService
+use LaravelCommode\Bladed\BladedServiceProvider;
+use LaravelCommode\Bladed\Interfaces\IBladedManager;
+
+use LaravelCommode\BladedEditors\Commands\Editor;
+use LaravelCommode\BladedEditors\Interfaces\IManager;
+
+use LaravelCommode\SilentService\SilentService;
+
+class BladedEditorsServiceProvider extends SilentService
 {
+    const PROVIDES_SERVICE = 'laravel-commode.bladed.editorsManager';
+
     protected function uses()
     {
-        return ['LaravelCommode\Bladed\BladedServiceProvider'];
+        return [BladedServiceProvider::class];
     }
 
     public function provides()
     {
-        return [
-            'LaravelCommode\BladedEditors\Interfaces\IManager',
-            'commode.bladed.editorsManager'
-        ];
+        return [IManager::class, self::PROVIDES_SERVICE];
     }
 
     /**
      * Will be triggered when the app's 'booting' event is triggered.
      */
-    protected function launching()
+    public function launching()
     {
 
     }
@@ -31,19 +36,16 @@ class BladedEditorsServiceProvider extends GhostService
     /**
      * Triggered when service is being registered.
      */
-    protected function registering()
+    public function registering()
     {
-        $this->app->singleton(
-            'LaravelCommode\BladedEditors\Interfaces\IManager',
-            'LaravelCommode\BladedEditors\Manager'
-        );
+        $this->app->singleton(IManager::class, Manager::class);
 
-        $this->app->bindShared('commode.bladed.editorsManager', function ($app) {
-            return $app->make('LaravelCommode\BladedEditors\Interfaces\IManager');
+        $this->app->bind(self::PROVIDES_SERVICE, function (Application $app) {
+            return $app->make(IManager::class);
         });
 
-        $this->with(['commode.bladed'], function (IBladedManager $manager) {
-            $manager->registerCommandNamespace('editor', 'LaravelCommode\BladedEditors\Commands\Editor');
+        $this->with([BladedServiceProvider::PROVIDES_SERVICE], function (IBladedManager $manager) {
+            $manager->registerCommandNamespace('editor', Editor::class);
         });
     }
 }

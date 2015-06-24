@@ -2,7 +2,6 @@
 
 namespace LaravelCommode\BladedEditors\Commands;
 
-use Illuminate\Foundation\Application;
 use LaravelCommode\Bladed\Commands\ABladedCommand;
 use LaravelCommode\BladedEditors\Interfaces\IManager;
 
@@ -18,26 +17,40 @@ class Editor extends ABladedCommand
      */
     private $manager;
 
-    public function __construct(Application $application)
+    /**
+     * @return IManager
+     */
+    private function getManager()
     {
-        parent::__construct($application);
-        $this->manager = $application->make('LaravelCommode\BladedEditors\Interfaces\IManager');
+        if ($this->manager === null) {
+            $this->manager = $this->getApplication()->make(IManager::class);
+        }
+
+        return $this->manager;
     }
 
-    /**
-     * Returns view for provided model.
-     *
-     * @param mixed $model
-     * @param array $data
-     * @param bool $isNew
-     * @return \Illuminate\View\View
-     */
-    public function model($model, array $data = [], $isNew = true)
+    private function constructArguments($model, array $data = [], $isNew = true)
+    {
+        return array_merge(
+            $data,
+            ['model' => $model, 'isNew' => $isNew],
+            $this->getEnvironment()->getShared()
+        );
+    }
+
+    public function editor($model, array $data = [], $isNew = true)
     {
         return $this->getEnvironment()->make(
-            $this->manager->guessEditor($model),
-            array_merge($data, ['model' => $model], $this->getEnvironment()->getShared()),
-            ['isNew' => $isNew]
+            $this->getManager()->guessEditor($model),
+            $this->constructArguments($model, $data, $isNew)
+        );
+    }
+
+    public function display($model, array $data = [], $isNew = true)
+    {
+        return $this->getEnvironment()->make(
+            $this->getManager()->guessDisplay($model),
+            $this->constructArguments($model, $data, $isNew)
         );
     }
 }

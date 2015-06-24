@@ -2,52 +2,101 @@
 
 namespace LaravelCommode\BladedEditors\Commands;
 
-use Illuminate\View\Factory;
+use Illuminate\Contracts\View\Factory;
+
+use LaravelCommode\BladedEditors\Interfaces\IManager;
 use LaravelCommode\BladedEditors\Manager;
+use LaravelCommode\Utils\Tests\PHPUnitContainer;
+
 use PHPUnit_Framework_MockObject_MockObject as Mock;
 
-class EditorTest extends \PHPUnit_Framework_TestCase
+class EditorTest extends PHPUnitContainer
 {
     /**
      * @var Editor
      */
-    private $editor;
+    private $testInstance;
 
     /**
      * @var Factory|Mock
      */
-    private $view;
+    private $viewFactoryMock;
 
     /**
-     * @var \Illuminate\Foundation\Application|Mock
-     */
-    private $applicationMock;
-
-    /**
-     * @var Manager
+     * @var Manager|IManager
      */
     private $manager;
 
     protected function setUp()
     {
-        $this->applicationMock = $this->getMock('Illuminate\Foundation\Application', ['make']);
+        parent::setUp();
+
+        $this->testInstance = new Editor($this->getApplicationMock());
+
+        $this->viewFactoryMock = $this->getMock(
+            Factory::class,
+            ['exists', 'file', 'make', 'share', 'composer', 'creator', 'addNamespace', 'getShared'],
+            [],
+            '',
+            false
+        );
 
         $this->manager = new Manager();
 
-        $this->applicationMock->expects($this->any())->method('make')
-            ->with('LaravelCommode\BladedEditors\Interfaces\IManager')
-            ->will($this->returnValue($this->manager));
-
-        $this->view = $this->getMock('Illuminate\View\Factory', [], [], '', false);
-        $this->editor = new Editor($this->applicationMock);
-        $this->editor->setEnvironment($this->view);
+        $this->testInstance->setEnvironment($this->viewFactoryMock);
     }
 
-    public function testModel()
+    public function testDisplay()
     {
-        $this->view->expects($this->any())->method('getShared')->will($this->returnValue([]));
-        $this->view->expects($this->once())->method('make');
+        $this->getApplicationMock()->expects($this->any())->method('make')
+            ->will($this->returnCallback(function ($make) {
+                switch ($make)
+                {
+                    case IManager::class:
+                        return $this->manager;
+                        break;
+                }
+            }));
 
-        $this->editor->model($this);
+        $this->viewFactoryMock->expects($this->exactly(1))->method('getShared')
+            ->will($this->returnValue([]));
+
+        $this->manager->addDisplayBinding(__NAMESPACE__, 'displays');
+
+        $this->viewFactoryMock->expects($this->exactly(1))->method('make')
+            ->with('displays::EditorTest')
+            ->will($this->returnValue($displayValue = uniqid()));
+
+        $this->assertSame($displayValue, $this->testInstance->display($this));
+    }
+
+    public function testEditor()
+    {
+        $this->getApplicationMock()->expects($this->any())->method('make')
+            ->will($this->returnCallback(function ($make) {
+                switch ($make)
+                {
+                    case IManager::class:
+                        return $this->manager;
+                        break;
+                }
+            }));
+
+        $this->viewFactoryMock->expects($this->exactly(1))->method('getShared')
+            ->will($this->returnValue([]));
+
+        $this->manager->addEditorBinding(__NAMESPACE__, 'editors');
+
+        $this->viewFactoryMock->expects($this->exactly(1))->method('make')
+            ->with('editors::EditorTest')
+            ->will($this->returnValue($editorValue = uniqid()));
+
+        $this->assertSame($editorValue, $this->testInstance->editor($this));
+    }
+
+    protected function tearDown()
+    {
+        unset($this->viewFactoryMock, $this->testInstance);
+        parent::tearDown();
     }
 }

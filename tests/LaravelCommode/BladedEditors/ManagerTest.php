@@ -1,39 +1,53 @@
 <?php
+
 namespace LaravelCommode\BladedEditors;
 
 use Illuminate\Filesystem\Filesystem;
+use LaravelCommode\BladedEditors\Commands\Editor;
+use LaravelCommode\BladedEditors\Interfaces\IManager;
 
 class ManagerTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var Manager
+     * @var Manager|IManager
      */
-    private $manager;
+    private $testInstance;
 
     protected function setUp()
     {
-        $this->manager = new Manager();
+        parent::setUp();
+
+        $this->testInstance = new Manager();
     }
 
-    public function testRegisterAndGrab()
+    public function testAll()
     {
-        $namespace = uniqid();
+        $this->testInstance->addEditorBinding(__NAMESPACE__, 'global');
+        $this->testInstance->addEditorBinding('Illuminate\Filesystem', 'file');
 
-        $this->manager->addBinding(__NAMESPACE__, $namespace);
+        $this->testInstance->addDisplayBinding(__NAMESPACE__, 'dglobal');
+        $this->testInstance->addDisplayBinding('Illuminate\Filesystem', 'dfile');
 
-        $this->assertSame(
-            $this->manager->guessEditor($this),
-            $namespace.'::'.(new \ReflectionClass($this))->getShortName()
-        );
+        $this->assertSame('global::ManagerTest', $this->testInstance->guessEditor(static::class));
+        $this->assertSame('file::Filesystem', $this->testInstance->guessEditor($instance = new Filesystem()));
 
-        $this->assertSame(
-            $this->manager->guessEditor($fileSystem = new Filesystem()),
-            "??::".(new \ReflectionClass($fileSystem))->getShortName()
-        );
+        $this->assertSame('dglobal::ManagerTest', $this->testInstance->guessDisplay(static::class));
+        $this->assertSame('dfile::Filesystem', $this->testInstance->guessDisplay($instance));
+
+        $expectFail = ['guessDisplay', 'guessEditor'];
+
+        foreach ($expectFail as $methodName) {
+            try {
+                call_user_func_array([$this->testInstance, $methodName], [Editor::class]);
+            } catch (\Exception $e) {
+                $this->assertTrue($e instanceof \InvalidArgumentException);
+            }
+        }
     }
 
     protected function tearDown()
     {
-        unset($this->manager);
+        unset($this->testInstance);
+        parent::tearDown();
     }
 }

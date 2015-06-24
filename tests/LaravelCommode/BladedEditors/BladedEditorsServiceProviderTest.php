@@ -1,83 +1,104 @@
 <?php
+/**
+ * Created by PhpStorm.
+ * User: madman
+ * Date: 23.06.15
+ * Time: 14:17
+ */
 
 namespace LaravelCommode\BladedEditors;
 
-use Illuminate\Foundation\Application;
+use LaravelCommode\Bladed\BladedServiceProvider;
 use LaravelCommode\Bladed\Interfaces\IBladedManager;
+use LaravelCommode\Bladed\Manager\BladedManager;
+use LaravelCommode\BladedEditors\Commands\Editor;
+use LaravelCommode\BladedEditors\Interfaces\IManager;
+use LaravelCommode\Utils\Tests\PHPUnitContainer;
+
 use PHPUnit_Framework_MockObject_MockObject as Mock;
 
-class BladedEditorsServiceProviderTest extends \PHPUnit_Framework_TestCase
+class BladedEditorsServiceProviderTest extends PHPUnitContainer
 {
     /**
      * @var BladedEditorsServiceProvider
      */
-    private $service;
+    private $testInstance;
 
     /**
-     * @var Application|Mock
+     * @var Manager|IManager|Mock
      */
-    private $applicationMock;
+    private $managerMock;
 
     /**
-     * @var Manager
+     * @var IBladedManager|BladedManager|Mock
      */
-    private $manager;
-
-    /**
-     * @var IBladedManager|Mock
-     */
-    private $bladedManager;
+    private $bladedManagerMock;
 
     protected function setUp()
     {
-        $this->bladedManager = $this->getMock('LaravelCommode\Bladed\Manager\BladedManager', [], [], '', false);
+        parent::setUp();
 
-        $this->applicationMock = $this->getMock(
-            'Illuminate\Foundation\Application',
-            ['singleton', 'bindShared', 'make'],
-            []
-        );
-
-        $this->service = new BladedEditorsServiceProvider($this->applicationMock);
-        $this->manager = new Manager();
-    }
-
-    public function testRegistering()
-    {
-        $this->applicationMock->expects($this->any())->method('make')
-            ->with('commode.bladed')
-            ->will($this->returnValue($this->bladedManager));
-
-        $reflection = new \ReflectionMethod($this->service, 'registering');
-        $reflection->setAccessible(true);
-        $reflection->invoke($this->service);
-
-        $reflection = new \ReflectionMethod($this->service, 'launching');
-        $reflection->setAccessible(true);
-        $reflection->invoke($this->service);
+        $this->testInstance = new BladedEditorsServiceProvider($this->getApplicationMock());
+        $this->managerMock = $this->getMock(Manager::class);
+        $this->bladedManagerMock = $this->getMock(BladedManager::class, [], [], '', false);
     }
 
     public function testUses()
     {
-        $reflection = new \ReflectionMethod($this->service, 'uses');
+        $expect = [BladedServiceProvider::class];
 
-        $reflection->setAccessible(true);
-        $this->assertSame(
-            $reflection->invoke($this->service),
-            ['LaravelCommode\Bladed\BladedServiceProvider']
-        );
+        $usesReflection = new \ReflectionMethod($this->testInstance, 'uses');
+        $usesReflection->setAccessible(true);
+        $this->assertSame($expect, $usesReflection->invoke($this->testInstance));
+        $usesReflection->setAccessible(false);
+    }
+
+    public function testRegister()
+    {
+        $this->getApplicationMock()->expects($this->exactly(1))->method('singleton')
+            ->with(IManager::class, Manager::class);
+
+        $this->getApplicationMock()->expects($this->exactly(1))->method('bind')
+            ->will($this->returnCallback(function ($bound, $boundTo) {
+
+                $this->assertTrue($boundTo($this->getApplicationMock()) instanceof IManager);
+
+                return null;
+            }));
+
+        $this->getApplicationMock()->expects($this->any())->method('make')
+            ->will($this->returnCallback(function ($make) {
+                switch ($make)
+                {
+                    case BladedServiceProvider::PROVIDES_SERVICE:
+                        return $this->bladedManagerMock;
+                    case IManager::class:
+                        return $this->managerMock;
+                }
+            }));
+
+        $this->bladedManagerMock->expects($this->once())->method('registerCommandNamespace')
+            ->with('editor', Editor::class);
+
+        $this->testInstance->registering();
+    }
+
+    public function testLaunching()
+    {
+        $this->testInstance->launching();
     }
 
     public function testProvides()
     {
-        $this->assertSame($this->service->provides(), [
-            'LaravelCommode\BladedEditors\Interfaces\IManager',
-            'commode.bladed.editorsManager'
-        ]);
+        $this->assertSame(
+            [IManager::class, BladedEditorsServiceProvider::PROVIDES_SERVICE],
+            $this->testInstance->provides()
+        );
     }
 
     protected function tearDown()
     {
-        unset($this->applicationMock, $this->service);
+        unset($this->testInstance);
+        parent::tearDown();
     }
 }
